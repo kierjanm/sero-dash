@@ -1,0 +1,8 @@
+{
+  "name": "sero-dash",
+  "version": "1.0.0",
+  "appName": "Sero Dash",
+  "description": "Clock dashboard for my TV",
+  "packageType": "app",
+  "appPath": "app/index.html"
+}
