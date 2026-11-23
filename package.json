@@ -1,8 +1,8 @@
 {
   "name": "sero-dash",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "appName": "Sero Dash",
-  "description": "Clock and free anime launcher for my TV",
+  "description": "Home dashboard: clock, weather and app launcher",
   "packageType": "app",
   "appPath": "app/index.html"
 }

@@ -7,15 +7,26 @@
   html, body { margin:0; height:100%; }
   body { background:#0b1026; color:#fff; font-family:sans-serif; overflow:hidden; }
 
-  #greeting { font-size:2.6vw; font-weight:700; color:#9fb4ff; padding:2.5vw 4vw 0; }
-  #top { display:flex; align-items:baseline; justify-content:space-between;
-         padding:0.5vw 4vw 0; }
-  #time { font-size:6vw; font-weight:700; }
+  #header { display:flex; justify-content:space-between; padding:2.5vw 4vw 0; }
+  #greeting { font-size:2.6vw; font-weight:700; color:#9fb4ff; }
+  #time { font-size:6vw; font-weight:700; line-height:1.15; white-space:nowrap; }
   #date { font-size:2vw; opacity:.7; }
-  h1 { font-size:2.2vw; font-weight:400; opacity:.8; margin:1.5vw 4vw 1vw; }
+  h1 { font-size:2.2vw; font-weight:400; opacity:.8; margin:1.2vw 4vw 0.6vw; }
+
+  #weather { box-sizing:border-box; width:44vw; padding:1.4vw 2vw; background:#151c3d;
+             border-radius:1.2vw; }
+  #wx-place { font-size:1.4vw; opacity:.7; }
+  #wx-now { display:flex; align-items:baseline; }
+  #wx-temp { font-size:5vw; font-weight:700; margin-right:1.5vw; }
+  #wx-cond { font-size:2vw; }
+  #wx-feels { font-size:1.4vw; opacity:.7; }
+  #wx-days { display:flex; margin-top:0.8vw; }
+  .day { flex:1; font-size:1.4vw; }
+  .day b { display:block; font-size:1.5vw; color:#9fb4ff; }
+  .day span { opacity:.75; }
 
   #grid { display:flex; flex-wrap:wrap; padding:0 3vw; }
-  .tile { box-sizing:border-box; width:29.33vw; height:13vw; margin:1vw; padding:1.8vw 2vw;
+  .tile { box-sizing:border-box; width:29.33vw; height:12vw; margin:0.8vw 1vw; padding:1.5vw 2vw;
           background:#151c3d; border:0.3vw solid transparent; border-left-width:0.8vw;
           border-radius:1.2vw; }
   .tile.focus { background:#222c5c; border-top-color:#fff; border-right-color:#fff;
@@ -29,11 +40,17 @@
            color:#9fb4ff; text-align:right; }
 
   @media (orientation: portrait) {
+    #header { display:block; }
     #greeting { font-size:5vw; }
-    #top { display:block; }
-    #time { font-size:12vw; white-space:nowrap; }
+    #time { font-size:12vw; }
     #date { font-size:4vw; }
     h1 { font-size:4vw; }
+    #weather { width:auto; margin-top:3vw; padding:3vw; }
+    #wx-place, #wx-feels { font-size:3vw; }
+    #wx-temp { font-size:11vw; }
+    #wx-cond { font-size:4.5vw; }
+    .day { font-size:3vw; }
+    .day b { font-size:3.2vw; }
     .tile { width:45vw; height:27vw; padding:3vw; }
     .name { font-size:5vw; }
     .desc { font-size:3vw; }
@@ -44,12 +61,25 @@
 </style>
 </head>
 <body>
-  <div id="greeting">Hello Aki, Kier, &amp; Francin</div>
-  <div id="top">
-    <div id="time"></div>
-    <div id="date"></div>
+  <div id="header">
+    <div id="clock">
+      <div id="greeting">Hello Aki, Kier, &amp; Francin</div>
+      <div id="time"></div>
+      <div id="date"></div>
+    </div>
+    <div id="weather">
+      <div id="wx-place"></div>
+      <div id="wx-now">
+        <div id="wx-temp">--</div>
+        <div>
+          <div id="wx-cond">Loading weather...</div>
+          <div id="wx-feels"></div>
+        </div>
+      </div>
+      <div id="wx-days"></div>
+    </div>
   </div>
-  <h1>Anime, free and legal</h1>
+  <h1>Watch</h1>
   <div id="grid"></div>
   <div id="status">Arrow keys to move, OK to open.</div>
   <div id="brand">Membicus &amp; Internet Aisle</div>
@@ -70,6 +100,80 @@
         color: '#ff3b3b', apps: [], url: 'https://www.youtube.com/tv',
         note: 'Ads here. Use the TizenTube card for no ads.' }
     ];
+
+    // Weather location. City level only, since this repo is public.
+    var PLACE = { name: 'Waukegan, IL', lat: 42.36, lon: -87.84, tz: 'America/Chicago' };
+
+    var WX_TEXT = {
+      0: 'Clear', 1: 'Mostly clear', 2: 'Partly cloudy', 3: 'Cloudy',
+      45: 'Fog', 48: 'Freezing fog',
+      51: 'Light drizzle', 53: 'Drizzle', 55: 'Heavy drizzle',
+      56: 'Freezing drizzle', 57: 'Freezing drizzle',
+      61: 'Light rain', 63: 'Rain', 65: 'Heavy rain',
+      66: 'Freezing rain', 67: 'Freezing rain',
+      71: 'Light snow', 73: 'Snow', 75: 'Heavy snow', 77: 'Snow grains',
+      80: 'Light showers', 81: 'Showers', 82: 'Heavy showers',
+      85: 'Snow showers', 86: 'Heavy snow showers',
+      95: 'Thunderstorm', 96: 'Thunderstorm, hail', 99: 'Thunderstorm, hail'
+    };
+
+    function wxText(code) { return WX_TEXT[code] || 'Weather'; }
+
+    function dayName(iso, index) {
+      if (index === 0) { return 'Today'; }
+      var p = iso.split('-');
+      var d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+      return d.toLocaleDateString([], { weekday: 'short' });
+    }
+
+    function showWeather(data) {
+      var cur = data.current, daily = data.daily;
+      document.getElementById('wx-place').textContent = PLACE.name;
+      document.getElementById('wx-temp').textContent = Math.round(cur.temperature_2m) + '\u00b0';
+      document.getElementById('wx-cond').textContent = wxText(cur.weather_code);
+      document.getElementById('wx-feels').textContent =
+        'Feels like ' + Math.round(cur.apparent_temperature) + '\u00b0';
+      var box = document.getElementById('wx-days');
+      box.innerHTML = '';
+      for (var i = 0; i < daily.time.length; i++) {
+        var day = document.createElement('div');
+        day.className = 'day';
+        var title = document.createElement('b');
+        title.textContent = dayName(daily.time[i], i);
+        var temps = document.createElement('div');
+        temps.textContent = Math.round(daily.temperature_2m_max[i]) + '\u00b0 / ' +
+          Math.round(daily.temperature_2m_min[i]) + '\u00b0';
+        var cond = document.createElement('span');
+        cond.textContent = wxText(daily.weather_code[i]);
+        day.appendChild(title);
+        day.appendChild(temps);
+        day.appendChild(cond);
+        box.appendChild(day);
+      }
+    }
+
+    function weatherFailed() {
+      document.getElementById('wx-place').textContent = PLACE.name;
+      document.getElementById('wx-cond').textContent = 'Weather unavailable';
+    }
+
+    function loadWeather() {
+      var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + PLACE.lat +
+        '&longitude=' + PLACE.lon +
+        '&current=temperature_2m,apparent_temperature,weather_code' +
+        '&daily=weather_code,temperature_2m_max,temperature_2m_min' +
+        '&temperature_unit=fahrenheit&forecast_days=4&timezone=' + encodeURIComponent(PLACE.tz);
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', url, true);
+      xhr.onload = function () {
+        try {
+          if (xhr.status !== 200) { weatherFailed(); return; }
+          showWeather(JSON.parse(xhr.responseText));
+        } catch (e) { weatherFailed(); }
+      };
+      xhr.onerror = weatherFailed;
+      xhr.send();
+    }
 
     var installed = [];   // filled from the TV's app list when available
     var focusIndex = 0;
@@ -194,6 +298,8 @@
     setInterval(tick, 1000);
     render();
     loadInstalledApps();
+    loadWeather();
+    setInterval(loadWeather, 15 * 60 * 1000);
   </script>
 </body>
 </html>
