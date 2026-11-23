@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Sero Dash</title>
+<style>
+  html, body { margin:0; height:100%; }
+  body { background:#0b1026; color:#fff; font-family:sans-serif; overflow:hidden; }
+
+  #greeting { font-size:2.6vw; font-weight:700; color:#9fb4ff; padding:2.5vw 4vw 0; }
+  #top { display:flex; align-items:baseline; justify-content:space-between;
+         padding:0.5vw 4vw 0; }
+  #time { font-size:6vw; font-weight:700; }
+  #date { font-size:2vw; opacity:.7; }
+  h1 { font-size:2.2vw; font-weight:400; opacity:.8; margin:1.5vw 4vw 1vw; }
+
+  #grid { display:flex; flex-wrap:wrap; padding:0 3vw; }
+  .tile { box-sizing:border-box; width:29.33vw; height:13vw; margin:1vw; padding:1.8vw 2vw;
+          background:#151c3d; border:0.3vw solid transparent; border-left-width:0.8vw;
+          border-radius:1.2vw; }
+  .tile.focus { background:#222c5c; border-top-color:#fff; border-right-color:#fff;
+                border-bottom-color:#fff; transform:scale(1.04); }
+  .name { font-size:2.6vw; font-weight:700; }
+  .desc { font-size:1.5vw; opacity:.75; margin-top:.6vw; }
+  .tag  { font-size:1.2vw; opacity:.9; margin-top:1vw; }
+
+  #status { position:absolute; left:4vw; right:42vw; bottom:2vw; font-size:1.5vw; opacity:.7; }
+  #brand { position:absolute; right:4vw; bottom:2vw; font-size:1.7vw; font-weight:700;
+           color:#9fb4ff; text-align:right; }
+
+  @media (orientation: portrait) {
+    #greeting { font-size:5vw; }
+    #top { display:block; }
+    #time { font-size:12vw; white-space:nowrap; }
+    #date { font-size:4vw; }
+    h1 { font-size:4vw; }
+    .tile { width:45vw; height:27vw; padding:3vw; }
+    .name { font-size:5vw; }
+    .desc { font-size:3vw; }
+    .tag  { font-size:2.4vw; }
+    #status { font-size:3vw; right:4vw; bottom:8vw; }
+    #brand { font-size:3.4vw; }
+  }
+</style>
+</head>
+<body>
+  <div id="greeting">Hello Aki, Kier, &amp; Francin</div>
+  <div id="top">
+    <div id="time"></div>
+    <div id="date"></div>
+  </div>
+  <h1>Anime, free and legal</h1>
+  <div id="grid"></div>
+  <div id="status">Arrow keys to move, OK to open.</div>
+  <div id="brand">Membicus &amp; Internet Aisle</div>
+
+  <script>
+    // Each source: the hub first tries the TV's installed app (better with a remote),
+    // and falls back to the website if the app is missing or cannot be launched.
+    var SOURCES = [
+      { name: 'Tubi', desc: 'Largest free catalog, lots of dubs. Has ads.',
+        color: '#ff5a1f', apps: ['tubi'], url: 'https://tubitv.com/category/anime' },
+      { name: 'Pluto TV', desc: 'Live anime channels around the clock. Has ads.',
+        color: '#ffd400', apps: ['pluto'], url: 'https://pluto.tv/us/live-tv' },
+      { name: 'RetroCrush', desc: 'Classics from the 70s to the 90s. Has ads.',
+        color: '#e6399b', apps: ['retrocrush'], url: 'https://www.retrocrush.tv/' },
+      { name: 'Hoopla', desc: 'Borrow with a library card. No ads.',
+        color: '#2aa7ff', apps: ['hoopla'], url: 'https://www.hoopladigital.com/' },
+      { name: 'YouTube', desc: 'Search VIZ Media, Toei Animation, TMS, Gundam Info.',
+        color: '#ff3b3b', apps: [], url: 'https://www.youtube.com/tv',
+        note: 'Ads here. Use the TizenTube card for no ads.' }
+    ];
+
+    var installed = [];   // filled from the TV's app list when available
+    var focusIndex = 0;
+    var tiles = [];
+
+    function setStatus(text) {
+      document.getElementById('status').textContent = text;
+    }
+
+    function tick() {
+      var d = new Date();
+      document.getElementById('time').textContent =
+        d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      document.getElementById('date').textContent =
+        d.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
+    }
+
+    function findApp(source) {
+      for (var i = 0; i < installed.length; i++) {
+        var appName = String(installed[i].name || '').toLowerCase();
+        for (var j = 0; j < source.apps.length; j++) {
+          if (appName.indexOf(source.apps[j]) !== -1) { return installed[i]; }
+        }
+      }
+      return null;
+    }
+
+    function tagFor(source) {
+      if (source.note) { return source.note; }
+      return findApp(source) ? 'Opens the TV app' : 'Opens the website';
+    }
+
+    function render() {
+      var grid = document.getElementById('grid');
+      grid.innerHTML = '';
+      tiles = [];
+      for (var i = 0; i < SOURCES.length; i++) {
+        var s = SOURCES[i];
+        var tile = document.createElement('div');
+        tile.className = 'tile';
+        tile.style.borderLeftColor = s.color;
+
+        var name = document.createElement('div');
+        name.className = 'name';
+        name.textContent = s.name;
+        var desc = document.createElement('div');
+        desc.className = 'desc';
+        desc.textContent = s.desc;
+        var tag = document.createElement('div');
+        tag.className = 'tag';
+        tag.textContent = tagFor(s);
+
+        tile.appendChild(name);
+        tile.appendChild(desc);
+        tile.appendChild(tag);
+        grid.appendChild(tile);
+        tiles.push(tile);
+      }
+      setFocus(focusIndex);
+    }
+
+    function setFocus(index) {
+      if (index < 0 || index >= tiles.length) { return; }
+      for (var i = 0; i < tiles.length; i++) {
+        tiles[i].className = (i === index) ? 'tile focus' : 'tile';
+      }
+      focusIndex = index;
+    }
+
+    // Number of tiles in the first row, so up and down work in any layout.
+    function columns() {
+      var count = 0;
+      for (var i = 0; i < tiles.length; i++) {
+        if (tiles[i].offsetTop === tiles[0].offsetTop) { count++; }
+      }
+      return count || 1;
+    }
+
+    function openWebsite(source) {
+      setStatus('Opening the ' + source.name + ' website...');
+      window.location.href = source.url;
+    }
+
+    function openSource(source) {
+      var app = findApp(source);
+      if (!app) { openWebsite(source); return; }
+      setStatus('Opening the ' + source.name + ' app...');
+      try {
+        tizen.application.launch(app.id,
+          function () { setStatus('Opened ' + source.name + '.'); },
+          function () { openWebsite(source); });
+      } catch (e) {
+        openWebsite(source);
+      }
+    }
+
+    function loadInstalledApps() {
+      try {
+        tizen.application.getAppsInfo(
+          function (apps) { installed = apps || []; render(); },
+          function () { /* keep website fallbacks */ });
+      } catch (e) {
+        // Not running on the TV, or the app list is not available here.
+      }
+    }
+
+    document.addEventListener('keydown', function (e) {
+      var cols = columns();
+      if (e.keyCode === 37) { setFocus(focusIndex - 1); }
+      else if (e.keyCode === 39) { setFocus(focusIndex + 1); }
+      else if (e.keyCode === 38) { setFocus(focusIndex - cols); }
+      else if (e.keyCode === 40) {
+        var next = focusIndex + cols;
+        setFocus(next < tiles.length ? next : tiles.length - 1);
+      }
+      else if (e.keyCode === 13) { openSource(SOURCES[focusIndex]); }
+      else { return; }
+      e.preventDefault();
+    });
+
+    tick();
+    setInterval(tick, 1000);
+    render();
+    loadInstalledApps();
+  </script>
+</body>
+</html>
