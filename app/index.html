@@ -7,8 +7,9 @@
   html, body { margin:0; height:100%; }
   body { background:#0b1026; color:#fff; font-family:sans-serif; overflow:hidden; }
 
+  #greeting { font-size:2.6vw; font-weight:700; color:#9fb4ff; padding:2.5vw 4vw 0; }
   #top { display:flex; align-items:baseline; justify-content:space-between;
-         padding:3vw 4vw 0; }
+         padding:0.5vw 4vw 0; }
   #time { font-size:6vw; font-weight:700; }
   #date { font-size:2vw; opacity:.7; }
   h1 { font-size:2.2vw; font-weight:400; opacity:.8; margin:1.5vw 4vw 1vw; }
@@ -23,9 +24,12 @@
   .desc { font-size:1.5vw; opacity:.75; margin-top:.6vw; }
   .tag  { font-size:1.2vw; opacity:.9; margin-top:1vw; }
 
-  #status { position:absolute; left:4vw; right:4vw; bottom:2vw; font-size:1.5vw; opacity:.7; }
+  #status { position:absolute; left:4vw; right:42vw; bottom:2vw; font-size:1.5vw; opacity:.7; }
+  #brand { position:absolute; right:4vw; bottom:2vw; font-size:1.7vw; font-weight:700;
+           color:#9fb4ff; text-align:right; }
 
   @media (orientation: portrait) {
+    #greeting { font-size:5vw; }
     #top { display:block; }
     #time { font-size:12vw; white-space:nowrap; }
     #date { font-size:4vw; }
@@ -34,11 +38,13 @@
     .name { font-size:5vw; }
     .desc { font-size:3vw; }
     .tag  { font-size:2.4vw; }
-    #status { font-size:3vw; }
+    #status { font-size:3vw; right:4vw; bottom:8vw; }
+    #brand { font-size:3.4vw; }
   }
 </style>
 </head>
 <body>
+  <div id="greeting">Hello Aki, Kier, &amp; Francin</div>
   <div id="top">
     <div id="time"></div>
     <div id="date"></div>
@@ -46,6 +52,7 @@
   <h1>Anime, free and legal</h1>
   <div id="grid"></div>
   <div id="status">Arrow keys to move, OK to open.</div>
+  <div id="brand">Membicus &amp; Internet Aisle</div>
 
   <script>
     // Each source: the hub first tries the TV's installed app (better with a remote),
